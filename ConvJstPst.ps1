@@ -66,7 +66,7 @@ function CalcPst2JstLocalTime($DateTime){
 
 if(((-not $ToPST) -and (-not $ToJST)) -or`
 	($ToPST -and $ToJST) -or`
-	($YYYYMMDD -eq [string]$null) -and ($HHMMSS -eq [string]$null)){
+	(($YYYYMMDD -eq [string]$null) -and ($HHMMSS -eq [string]$null))){
 	echo "Usage..."
 	echo "    ConvJstPst.ps1 YYYY/MM/DD HH:MM:SS [ -ToJST | -ToPST ]"
 	exit
