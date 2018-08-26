@@ -15,10 +15,6 @@ $C_PstTimeZone = Get-TimeZone -Id "Pacific Standard Time"
 $C_BaseJstOffset = $C_JstTimeZone.BaseUtcOffset.Hours
 $C_BasePstOffset = $C_PstTimeZone.BaseUtcOffset.Hours
 
-# Base 時差
-$C_BaseLagJst2Pst = ($C_BaseJstOffset * -1) + $C_BasePstOffset
-$C_BaseLagPst2Jst = $C_BaseLagJst2Pst * -1
-
 ######################################################
 # JST to PST
 ######################################################
@@ -27,37 +23,61 @@ function CalcJst2PstLocalTime($DateTime){
 	# 指定日時の JST 時差
 	$JstLocalTimeOffset = ($C_JstTimeZone.GetUtcOffset($DateTime)).Hours
 
-	# 指定日時の PST 時差
-	$BasePstTime = $DateTime.AddHours($C_BaseLagJst2Pst)
+	# UTC
+	$UTC = $DateTime.AddHours($JstLocalTimeOffset * -1)
+
+	# PST Base 時間
+	$BasePstTime = $UTC.AddHours($C_BasePstOffset)
+
+	# PST 時間 の時差
 	$PstLocalTimeOffset = ($C_PstTimeZone.GetUtcOffset($BasePstTime)).Hours
 
-	# サマータイムを考慮した時差
-	$LocalLagJst2Pst = ($JstLocalTimeOffset * -1) + $PstLocalTimeOffset
+	# PST 時間
+	$LocalPST = $UTC.AddHours($PstLocalTimeOffset)
 
-	# 指定日時の PST 日時
-	$LocalPST = $DateTime.AddHours($LocalLagJst2Pst)
+	# 戻り値
+	$ReturnData = New-Object PSObject | Select-Object LocalTime, SummerTime
 
-	return $LocalPST
+	# ローカル時間
+	$ReturnData.LocalTime = $LocalPST
+
+	# 夏時間か
+	$ReturnData.SummerTime = $C_PstTimeZone.IsDaylightSavingTime($BasePstTime)
+
+	return $ReturnData
 }
 
 ######################################################
 # PST to JST
 ######################################################
 function CalcPst2JstLocalTime($DateTime){
+
 	# 指定日時の Pst 時差
 	$PstLocalTimeOffset = ($C_PstTimeZone.GetUtcOffset($DateTime)).Hours
 
-	# 指定日時の Jst 時差
-	$BaseJstTime = $DateTime.AddHours($C_BaseLagPst2Jst)
+	# UTC
+	$UTC = $DateTime.AddHours($PstLocalTimeOffset * -1)
+
+	# Jst Base 時間
+	$BaseJstTime = $UTC.AddHours($C_BaseJstOffset)
+
+	# Jst 時間 の時差
 	$JstLocalTimeOffset = ($C_JstTimeZone.GetUtcOffset($BaseJstTime)).Hours
 
-	# サマータイムを考慮した時差
-	$LocalLagPst2Jst = ($PstLocalTimeOffset * -1) + $JstLocalTimeOffset
+	# Jst 時間
+	$LocalJst = $UTC.AddHours($JstLocalTimeOffset)
 
-	# 指定日時の Jst 日時
-	$LocalJst = $DateTime.AddHours($LocalLagPst2Jst)
+	# 戻り値
+	$ReturnData = New-Object PSObject | Select-Object LocalTime, SummerTime
 
-	return $LocalJst
+	# ローカル時間
+	$ReturnData.LocalTime = $LocalJst
+
+	# 夏時間か
+	$ReturnData.SummerTime = $C_JstTimeZone.IsDaylightSavingTime($BaseJstTime)
+
+	return $ReturnData
+
 }
 
 ######################################################
