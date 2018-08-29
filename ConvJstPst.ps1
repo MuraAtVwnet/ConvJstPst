@@ -8,76 +8,27 @@ if((Get-Command Get-TimeZone -ErrorAction SilentlyContinue) -eq $null){
 	echo "[FAIL] このバージョンでは Get-TimeZone コマンドレットがサポートされていません"
 	exit
 }
-$C_JstTimeZone = Get-TimeZone -Id "Tokyo Standard Time"
-$C_PstTimeZone = Get-TimeZone -Id "Pacific Standard Time"
-
-# 時差
-$C_BaseJstOffset = $C_JstTimeZone.BaseUtcOffset.Hours
-$C_BasePstOffset = $C_PstTimeZone.BaseUtcOffset.Hours
+$C_PST_ZoneID = "Pacific Standard Time"
+$C_JST_ZoneID = "Tokyo Standard Time"
 
 ######################################################
 # JST to PST
 ######################################################
-function CalcJst2PstLocalTime($DateTime){
-
-	# 指定日時の JST 時差
-	$JstLocalTimeOffset = ($C_JstTimeZone.GetUtcOffset($DateTime)).Hours
-
-	# UTC
-	$UTC = $DateTime.AddHours($JstLocalTimeOffset * -1)
-
-	# PST Base 時間
-	$BasePstTime = $UTC.AddHours($C_BasePstOffset)
-
-	# PST 時間 の時差
-	$PstLocalTimeOffset = ($C_PstTimeZone.GetUtcOffset($BasePstTime)).Hours
-
-	# PST 時間
-	$LocalPST = $UTC.AddHours($PstLocalTimeOffset)
-
-	# 戻り値
-	$ReturnData = New-Object PSObject | Select-Object LocalTime, SummerTime
-
-	# ローカル時間
-	$ReturnData.LocalTime = $LocalPST
-
-	# 夏時間か
-	$ReturnData.SummerTime = $C_PstTimeZone.IsDaylightSavingTime($BasePstTime)
-
-	return $ReturnData
+function CalcJst2PstLocalTime([datetime]$DateTime){
+	[TimeSpan]$Offset = (Get-TimeZone -Id $C_JST_ZoneID).GetUtcOffset($DateTime)
+	[datetimeoffset]$Jst = New-Object DateTimeOffset( $DateTime, $Offset )
+	[datetimeoffset]$Pst = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId($Jst, $C_PST_ZoneID)
+	return $Pst
 }
 
 ######################################################
 # PST to JST
 ######################################################
-function CalcPst2JstLocalTime($DateTime){
-
-	# 指定日時の Pst 時差
-	$PstLocalTimeOffset = ($C_PstTimeZone.GetUtcOffset($DateTime)).Hours
-
-	# UTC
-	$UTC = $DateTime.AddHours($PstLocalTimeOffset * -1)
-
-	# Jst Base 時間
-	$BaseJstTime = $UTC.AddHours($C_BaseJstOffset)
-
-	# Jst 時間 の時差
-	$JstLocalTimeOffset = ($C_JstTimeZone.GetUtcOffset($BaseJstTime)).Hours
-
-	# Jst 時間
-	$LocalJst = $UTC.AddHours($JstLocalTimeOffset)
-
-	# 戻り値
-	$ReturnData = New-Object PSObject | Select-Object LocalTime, SummerTime
-
-	# ローカル時間
-	$ReturnData.LocalTime = $LocalJst
-
-	# 夏時間か
-	$ReturnData.SummerTime = $C_JstTimeZone.IsDaylightSavingTime($BaseJstTime)
-
-	return $ReturnData
-
+function CalcPst2JstLocalTime([datetime]$DateTime){
+	[TimeSpan]$Offset = (Get-TimeZone -Id $C_PST_ZoneID).GetUtcOffset($DateTime)
+	[datetimeoffset]$Pst = New-Object DateTimeOffset( $DateTime, $Offset )
+	[datetimeoffset]$Jst = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId($Pst, $C_JST_ZoneID)
+	return $Jst
 }
 
 ######################################################
@@ -107,5 +58,5 @@ else{
 	$LocalTime = CalcPst2JstLocalTime $DateTime
 }
 
-echo $LocalTime
+echo $LocalTime.DateTime
 
