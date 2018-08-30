@@ -17,8 +17,22 @@ $C_JST_ZoneID = "Tokyo Standard Time"
 function CalcJst2PstLocalTime([datetime]$DateTime){
 	[TimeSpan]$Offset = (Get-TimeZone -Id $C_JST_ZoneID).GetUtcOffset($DateTime)
 	[datetimeoffset]$Jst = New-Object DateTimeOffset( $DateTime, $Offset )
+
+	$JstTimeZone = Get-TimeZone -Id $C_JST_ZoneID
+	if( $JstTimeZone.IsInvalidTime( $Jst.DateTime)){
+		echo "[ERROR] $DateTime (JST) はサマータイム開始時のため存在しない時刻です"
+		exit
+	}
+
 	[datetimeoffset]$Pst = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId($Jst, $C_PST_ZoneID)
-	return $Pst
+
+	$ReturnData = New-Object PSObject | Select-Object LocalTime, SummerTime
+	$ReturnData.LocalTime = $Pst.DateTime
+
+	$PstTimeZone = Get-TimeZone -Id $C_PST_ZoneID
+	$ReturnData.SummerTime = $PstTimeZone.IsDaylightSavingTime($Pst.DateTime)
+
+	return $ReturnData
 }
 
 ######################################################
@@ -27,8 +41,23 @@ function CalcJst2PstLocalTime([datetime]$DateTime){
 function CalcPst2JstLocalTime([datetime]$DateTime){
 	[TimeSpan]$Offset = (Get-TimeZone -Id $C_PST_ZoneID).GetUtcOffset($DateTime)
 	[datetimeoffset]$Pst = New-Object DateTimeOffset( $DateTime, $Offset )
+
+	$PstTimeZone = Get-TimeZone -Id $C_PST_ZoneID
+	if( $PstTimeZone.IsInvalidTime( $Pst.DateTime)){
+		echo "[ERROR] $DateTime (PST) はサマータイム開始時のため存在しない時刻です"
+		exit
+	}
+
 	[datetimeoffset]$Jst = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId($Pst, $C_JST_ZoneID)
-	return $Jst
+
+	$ReturnData = New-Object PSObject | Select-Object LocalTime, SummerTime
+	$ReturnData.LocalTime = $Jst.DateTime
+
+	$JstTimeZone = Get-TimeZone -Id $C_JST_ZoneID
+	$ReturnData.SummerTime = $JstTimeZone.IsDaylightSavingTime($Jst.DateTime)
+
+	return $ReturnData
+
 }
 
 ######################################################
@@ -58,5 +87,5 @@ else{
 	$LocalTime = CalcPst2JstLocalTime $DateTime
 }
 
-echo $LocalTime.DateTime
+echo $LocalTime
 
