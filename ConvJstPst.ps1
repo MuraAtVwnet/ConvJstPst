@@ -4,10 +4,10 @@
 Param([string]$YYYYMMDD, [string]$HHMMSS, [switch]$ToJST, [switch]$ToPST)
 
 # タイムゾーン
-if((Get-Command Get-TimeZone -ErrorAction SilentlyContinue) -eq $null){
-	echo "[FAIL] このバージョンでは Get-TimeZone コマンドレットがサポートされていません"
-	exit
-}
+#if((Get-Command Get-TimeZone -ErrorAction SilentlyContinue) -eq $null){
+#	echo "[FAIL] このバージョンでは Get-TimeZone コマンドレットがサポートされていません"
+#	exit
+#}
 $C_PST_ZoneID = "Pacific Standard Time"
 $C_JST_ZoneID = "Tokyo Standard Time"
 
@@ -15,10 +15,10 @@ $C_JST_ZoneID = "Tokyo Standard Time"
 # JST to PST
 ######################################################
 function CalcJst2PstLocalTime([datetime]$DateTime){
-	[TimeSpan]$Offset = (Get-TimeZone -Id $C_JST_ZoneID).GetUtcOffset($DateTime)
+	[TimeSpan]$Offset = ([System.TimeZoneInfo]::FindSystemTimeZoneById($C_JST_ZoneID)).GetUtcOffset($DateTime)
 	[datetimeoffset]$Jst = New-Object DateTimeOffset( $DateTime, $Offset )
 
-	$JstTimeZone = Get-TimeZone -Id $C_JST_ZoneID
+	$JstTimeZone = [System.TimeZoneInfo]::FindSystemTimeZoneById($C_JST_ZoneID)
 	if( $JstTimeZone.IsInvalidTime( $Jst.DateTime)){
 		echo "[ERROR] $DateTime (JST) はサマータイム開始時のため存在しない時刻です"
 		exit
@@ -29,7 +29,7 @@ function CalcJst2PstLocalTime([datetime]$DateTime){
 	$ReturnData = New-Object PSObject | Select-Object LocalTime, SummerTime
 	$ReturnData.LocalTime = $Pst.DateTime
 
-	$PstTimeZone = Get-TimeZone -Id $C_PST_ZoneID
+	$PstTimeZone = [System.TimeZoneInfo]::FindSystemTimeZoneById($C_PST_ZoneID)
 	$ReturnData.SummerTime = $PstTimeZone.IsDaylightSavingTime($Pst.DateTime)
 
 	return $ReturnData
@@ -39,10 +39,10 @@ function CalcJst2PstLocalTime([datetime]$DateTime){
 # PST to JST
 ######################################################
 function CalcPst2JstLocalTime([datetime]$DateTime){
-	[TimeSpan]$Offset = (Get-TimeZone -Id $C_PST_ZoneID).GetUtcOffset($DateTime)
+	[TimeSpan]$Offset = ([System.TimeZoneInfo]::FindSystemTimeZoneById($C_PST_ZoneID)).GetUtcOffset($DateTime)
 	[datetimeoffset]$Pst = New-Object DateTimeOffset( $DateTime, $Offset )
 
-	$PstTimeZone = Get-TimeZone -Id $C_PST_ZoneID
+	$PstTimeZone = [System.TimeZoneInfo]::FindSystemTimeZoneById($C_PST_ZoneID)
 	if( $PstTimeZone.IsInvalidTime( $Pst.DateTime)){
 		echo "[ERROR] $DateTime (PST) はサマータイム開始時のため存在しない時刻です"
 		exit
@@ -53,7 +53,7 @@ function CalcPst2JstLocalTime([datetime]$DateTime){
 	$ReturnData = New-Object PSObject | Select-Object LocalTime, SummerTime
 	$ReturnData.LocalTime = $Jst.DateTime
 
-	$JstTimeZone = Get-TimeZone -Id $C_JST_ZoneID
+	$JstTimeZone = [System.TimeZoneInfo]::FindSystemTimeZoneById($C_JST_ZoneID)
 	$ReturnData.SummerTime = $JstTimeZone.IsDaylightSavingTime($Jst.DateTime)
 
 	return $ReturnData
