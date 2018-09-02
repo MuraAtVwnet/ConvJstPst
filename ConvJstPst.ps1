@@ -4,10 +4,6 @@
 Param([string]$YYYYMMDD, [string]$HHMMSS, [switch]$ToJST, [switch]$ToPST)
 
 # タイムゾーン
-#if((Get-Command Get-TimeZone -ErrorAction SilentlyContinue) -eq $null){
-#	echo "[FAIL] このバージョンでは Get-TimeZone コマンドレットがサポートされていません"
-#	exit
-#}
 $C_PST_ZoneID = "Pacific Standard Time"
 $C_JST_ZoneID = "Tokyo Standard Time"
 
